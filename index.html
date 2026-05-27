@@ -130,11 +130,11 @@ let scanning=false, timer=null, expanded=null, orders=0, logLines=[], markets=[]
 let signals={fed:null,cpi:null,unemp:null,gas:null,sp:null};
 
 const CAT_KW={
-  'Fed':['fed','fomc','federal reserve','rate hold','rate cut','rate hike','interest rate','basis point','bps'],
+  'Fed':['fomc','federal reserve','rate hold','rate cut','rate hike','interest rate','basis point','fed funds','federal open market'],
   'Inflation':['cpi','inflation','pce','core cpi','price index','consumer price'],
-  'Jobs':['unemployment','jobs','nonfarm','payroll','labor','employment rate'],
-  'Energy':['gas','oil','crude','wti','energy','gasoline','gallon'],
-  'Markets':['spy','s&p','nasdaq','dow','stock market','equity','spx']
+  'Jobs':['unemployment rate','nonfarm','payroll','labor force','jobless claims'],
+  'Energy':['gas price','oil price','crude oil','wti','gasoline','price per gallon'],
+  'Markets':['s&p 500','nasdaq','dow jones','stock market close','spx']
 };
 
 function ts(){return new Date().toLocaleTimeString('en-US',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});}
