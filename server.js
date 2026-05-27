@@ -2,6 +2,8 @@ const https = require('https');
 const http = require('http');
 
 const PORT = process.env.PORT || 3000;
+const KALSHI_KEY_ID = process.env.KALSHI_KEY_ID || '';
+const KALSHI_SECRET = process.env.KALSHI_SECRET || '';
 
 function proxyRequest(targetUrl, res, extraHeaders = {}) {
   const url = new URL(targetUrl);
@@ -46,15 +48,11 @@ http.createServer((req, res) => {
     return;
   }
 
-  const kalshiKey = url.searchParams.get('kalshi_key');
-  const kalshiKeyId = url.searchParams.get('kalshi_key_id');
-
-  const extraHeaders = {};
-  if (kalshiKey && kalshiKeyId) {
-    extraHeaders['KALSHI-ACCESS-KEY'] = kalshiKeyId;
-    extraHeaders['KALSHI-ACCESS-SIGNATURE'] = kalshiKey;
-    extraHeaders['KALSHI-ACCESS-TIMESTAMP'] = Date.now().toString();
-  }
+  const extraHeaders = {
+    'KALSHI-ACCESS-KEY': KALSHI_KEY_ID,
+    'KALSHI-ACCESS-SIGNATURE': KALSHI_SECRET,
+    'KALSHI-ACCESS-TIMESTAMP': Date.now().toString()
+  };
 
   proxyRequest(target, res, extraHeaders);
 
