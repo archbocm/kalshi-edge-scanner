@@ -1,12 +1,32 @@
 const https = require('https');
 const http = require('http');
+const crypto = require('crypto');
 
 const PORT = process.env.PORT || 3000;
 const KALSHI_KEY_ID = process.env.KALSHI_KEY_ID || '';
 const KALSHI_SECRET = (process.env.KALSHI_SECRET || '').replace(/\\n/g, '\n');
 
+function signRequest(timestamp, method, path) {
+  const message = timestamp + method + path;
+  const sign = crypto.createSign('RSA-SHA256');
+  sign.update(message);
+  sign.end();
+  return sign.sign(KALSHI_SECRET, 'base64');
+}
+
 function proxyRequest(targetUrl, method, body, res) {
   const url = new URL(targetUrl);
+  const timestamp = Date.now().toString();
+  let signature;
+
+  try {
+    signature = signRequest(timestamp, method, url.pathname + url.search);
+  } catch (e) {
+    res.writeHead(500, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+    res.end(JSON.stringify({ error: 'Signing failed: ' + e.message }));
+    return;
+  }
+
   const options = {
     hostname: url.hostname,
     path: url.pathname + url.search,
@@ -14,8 +34,8 @@ function proxyRequest(targetUrl, method, body, res) {
     headers: {
       'Content-Type': 'application/json',
       'KALSHI-ACCESS-KEY': KALSHI_KEY_ID,
-      'KALSHI-ACCESS-SIGNATURE': KALSHI_SECRET.replace(/\n/g, ''),
-      'KALSHI-ACCESS-TIMESTAMP': Date.now().toString()
+      'KALSHI-ACCESS-SIGNATURE': signature,
+      'KALSHI-ACCESS-TIMESTAMP': timestamp
     }
   };
 
