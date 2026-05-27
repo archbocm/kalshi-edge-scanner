@@ -22,10 +22,11 @@ function proxyRequest(targetUrl, method, body, res) {
   if (body) options.headers['Content-Length'] = Buffer.byteLength(body);
 
   const req = https.request(options, (proxyRes) => {
-    res.writeHead(proxyRes.statusCode, {
+res.writeHead(proxyRes.statusCode, {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': '*'
+      'Access-Control-Allow-Headers': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
     });
     proxyRes.pipe(res);
   });
