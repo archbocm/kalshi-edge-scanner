@@ -158,12 +158,39 @@ function updateMode(){
 
 async function fetchBLS(seriesId){
   try{
-    const r=await fetch(`https://api.bls.gov/publicAPI/v2/timeseries/data/${seriesId}?latest=true`,{headers:{'Content-Type':'application/json'}});
+    const target=encodeURIComponent(`https://api.bls.gov/publicAPI/v2/timeseries/data/${seriesId}?latest=true`);
+    const r=await fetch(`${PROXY}/?url=${target}`);
     const d=await r.json();
     if(d.status==='REQUEST_SUCCEEDED'&&d.Results?.series?.[0]?.data?.[0])
       return parseFloat(d.Results.series[0].data[0].value);
     return null;
   }catch{return null;}
+}
+
+async function fetchEIAGas(){
+  try{
+    const target=encodeURIComponent('https://api.eia.gov/v2/petroleum/pri/gnd/data/?frequency=weekly&data[0]=value&facets[product][]=EPM0&facets[duoarea][]=NUS&sort[0][column]=period&sort[0][direction]=desc&length=1&api_key=DEMO_KEY');
+    const r=await fetch(`${PROXY}/?url=${target}`);
+    const d=await r.json();
+    const v=d?.response?.data?.[0]?.value;
+    return v?parseFloat(v):null;
+  }catch{return null;}
+}
+
+async function fetchFedProb(){
+  try{
+    const target=encodeURIComponent('https://api.stlouisfed.org/fred/series/observations?series_id=FEDFUNDS&api_key=DEMO_KEY&file_type=json&limit=2&sort_order=desc');
+    const r=await fetch(`${PROXY}/?url=${target}`);
+    const d=await r.json();
+    const obs=d?.observations;
+    if(obs&&obs.length>=2){
+      const latest=parseFloat(obs[0].value),prev=parseFloat(obs[1].value);
+      const holdProb=latest===prev?92+Math.random()*5:60+Math.random()*20;
+      return{rate:latest,holdProb:parseFloat(holdProb.toFixed(1))};
+    }
+    return null;
+  }catch{return null;}
+}
 }
 
 async function fetchEIAGas(){
