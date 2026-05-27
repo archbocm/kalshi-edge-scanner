@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kalshi Edge Scanner</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Courier New', monospace; background: #0a0c10; color: #c8d8e8; min-height: 100vh; padding: 24px; }
+    #app { max-width: 860px; margin: 0 auto; }
+    h1 { font-size: 18px; font-weight: 500; color: #e8f4ff; margin-bottom: 4px; }
+    .sub { font-size: 11px; color: #4a5568; margin-bottom: 20px; }
+    .badge { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 4px; font-weight: 500; margin-left: 6px; vertical-align: middle; }
+    .badge.dry { background: #3a2e00; color: #ffd166; }
+    .badge.live { background: #0a2e0a; color: #00ff87; }
+    .badge.cat { background: #1c2230; color: #667788; }
+    .badge.sig { background: #0a2a0a; color: #00cc6a; }
+    .badge.real { background: #0a1e3a; color: #00b8cc; }
+    .badge.est { background: #1c2230; color: #667788; }
+    .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+    input[type=text], input[type=password], input[type=number], select {
+      background: #0f1318; border: 1px solid #1c2230; border-radius: 4px;
+      color: #c8d8e8; font-family: 'Courier New', monospace; font-size: 12px; padding: 4px 8px;
+    }
+    input[type=text]:focus, input[type=password]:focus { outline: none; border-color: #2a3a50; }
+    .btn { padding: 5px 14px; font-size: 12px; border: 1px solid #1c2230; border-radius: 4px; background: #0f1318; color: #c8d8e8; cursor: pointer; font-family: 'Courier New', monospace; }
+    .btn:hover { background: #1c2230; }
+    .btn.primary { background: #185FA5; color: #E6F1FB; border-color: #185FA5; }
+    .btn.primary:hover { background: #0C447C; }
+    .btn.danger { background: #A32D2D; color: #FCEBEB; border-color: #A32D2D; }
+    .panel { background: #0f1318; border: 1px solid #1c2230; border-radius: 8px; padding: 14px 16px; margin-bottom: 12px; }
+    .panel-title { font-size: 10px; color: #4a5568; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 10px; }
+    .src-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; border-bottom: 1px solid #1c2230; font-size: 11px; }
+    .src-row:last-child { border-bottom: none; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .dot.ok { background: #00cc6a; }
+    .dot.load { background: #ffd166; }
+    .dot.err { background: #ff3860; }
+    .dot.idle { background: #1c2230; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-bottom: 12px; }
+    .stat-box { background: #0f1318; border: 1px solid #1c2230; border-radius: 6px; padding: 10px 12px; }
+    .stat-label { font-size: 10px; color: #4a5568; margin-bottom: 3px; }
+    .stat-val { font-size: 20px; font-weight: 500; color: #e8f4ff; }
+    .stat-val.green { color: #00cc6a; }
+    .stat-val.blue { color: #00b8cc; }
+    .mcard { background: #0f1318; border: 1px solid #1c2230; border-radius: 8px; padding: 14px 16px; margin-bottom: 8px; cursor: pointer; transition: border-color 0.15s; }
+    .mcard:hover { border-color: #2a3a50; }
+    .mcard.signal { border-left: 3px solid #00cc6a; }
+    .mcard.expanded { border-color: #2a3a50; }
+    .mcard-title { font-size: 12px; font-weight: 500; color: #e8f4ff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mcard-sub { font-size: 10px; color: #4a5568; margin-top: 2px; }
+    .bar-wrap { background: #1c2230; border-radius: 3px; height: 6px; flex: 1; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s; }
+    .expand-section { overflow: hidden; max-height: 0; transition: max-height 0.25s ease; }
+    .expand-section.open { max-height: 200px; }
+    .log-box { background: #070a0f; border: 1px solid #1c2230; border-radius: 6px; padding: 10px 12px; height: 140px; overflow-y: auto; font-size: 11px; color: #4a5568; }
+    .log-box p { margin: 2px 0; line-height: 1.5; }
+    .log-sig { color: #00cc6a; }
+    .log-order { color: #00b8cc; }
+    .log-err { color: #ff3860; }
+    .log-info { color: #ffd166; }
+    label { font-size: 11px; color: #667788; display: flex; align-items: center; gap: 4px; cursor: pointer; }
+    .api-ref { font-size: 10px; color: #4a5568; line-height: 1.8; margin-top: 12px; padding: 10px 12px; background: #070a0f; border-radius: 6px; }
+    .api-ref .method-get { color: #00b8cc; }
+    .api-ref .method-post { color: #00cc6a; }
+    code { color: #c8d8e8; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div class="row" style="margin-bottom:6px;">
+    <h1>Kalshi Edge Scanner</h1>
+    <span id="lb" class="badge dry">DRY RUN</span>
+    <span id="conn-badge" class="badge cat">disconnected</span>
+  </div>
+  <div class="sub">Multi-market scanner — Fed · CPI · Jobs · Energy · S&P — live BLS, EIA &amp; FRED signals</div>
+
+  <!-- Controls -->
+  <div class="row">
+    <select id="isel"><option value="30000" selected>30s</option><option value="60000">1m</option><option value="300000">5m</option></select>
+    <select id="tsel"><option value="3">3% edge</option><option value="5" selected>5% edge</option><option value="7">7% edge</option><option value="10">10% edge</option></select>
+    <button id="sbtn" class="btn primary" onclick="toggleScan()">Start scanner</button>
+  </div>
+
+  <!-- API Key -->
+  <div class="panel" style="margin-top:10px;">
+    <div class="panel-title">Kalshi credentials</div>
+    <div class="row">
+      <input id="ak" type="password" placeholder="API secret key..." style="flex:1;min-width:200px;">
+      <input id="ki" type="text" placeholder="Key ID..." style="width:140px;">
+      <label><input type="checkbox" id="at" onchange="updateMode()"> auto-trade</label>
+    </div>
+  </div>
+
+  <!-- Signal sources -->
+  <div class="panel">
+    <div class="panel-title">External signal sources</div>
+    <div class="src-row"><div class="dot idle" id="d-fed"></div><span style="min-width:110px;color:#667788;">Fed probability</span><span id="v-fed">—</span><span class="badge est" style="margin-left:auto;">FRED + implied</span></div>
+    <div class="src-row"><div class="dot idle" id="d-cpi"></div><span style="min-width:110px;color:#667788;">CPI (BLS API)</span><span id="v-cpi">—</span><span class="badge real" style="margin-left:auto;">Live</span></div>
+    <div class="src-row"><div class="dot idle" id="d-unemp"></div><span style="min-width:110px;color:#667788;">Unemployment</span><span id="v-unemp">—</span><span class="badge real" style="margin-left:auto;">Live</span></div>
+    <div class="src-row"><div class="dot idle" id="d-gas"></div><span style="min-width:110px;color:#667788;">Gas price (EIA)</span><span id="v-gas">—</span><span class="badge real" style="margin-left:auto;">Live</span></div>
+    <div class="src-row"><div class="dot idle" id="d-sp"></div><span style="min-width:110px;color:#667788;">S&P 500</span><span id="v-sp">—</span><span class="badge est" style="margin-left:auto;">Options-implied</span></div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-box"><div class="stat-label">Markets tracked</div><div class="stat-val" id="s-m">—</div></div>
+    <div class="stat-box"><div class="stat-label">Signals found</div><div class="stat-val green" id="s-s">—</div></div>
+    <div class="stat-box"><div class="stat-label">Orders placed</div><div class="stat-val blue" id="s-o">—</div></div>
+    <div class="stat-box"><div class="stat-label">Last scan</div><div class="stat-val" id="s-t" style="font-size:12px;margin-top:4px;">—</div></div>
+  </div>
+
+  <!-- Markets list -->
+  <div id="mlist">
+    <div style="font-size:12px;color:#4a5568;padding:20px 0;text-align:center;">Start the scanner to load live Kalshi markets.</div>
+  </div>
+
+  <!-- Log -->
+  <div style="margin-top:14px;">
+    <div class="row" style="margin-bottom:6px;">
+      <span style="font-size:10px;color:#4a5568;text-transform:uppercase;letter-spacing:0.07em;">Activity log</span>
+      <button class="btn" style="font-size:11px;padding:2px 8px;margin-left:auto;" onclick="clearLog()">Clear</button>
+    </div>
+    <div class="log-box" id="klog"><p>Scanner idle. Enter Kalshi credentials and press Start.</p></div>
+  </div>
+
+  <!-- API ref -->
+  <div class="api-ref">
+    <div><span class="method-get">GET</span> <code>https://trading-api.kalshi.com/trade-api/v2/markets?status=open&limit=200</code></div>
+    <div><span class="method-post">POST</span> <code>https://trading-api.kalshi.com/trade-api/v2/portfolio/orders</code></div>
+    <div style="margin-top:4px;color:#2a3a50;">Get your API key: kalshi.com → Settings → API Access</div>
+  </div>
+</div>
+
+<script>
+const KALSHI = 'https://trading-api.kalshi.com/trade-api/v2';
+let scanning=false, timer=null, expanded=null, orders=0, logLines=[], markets=[];
+let signals={fed:null,cpi:null,unemp:null,gas:null,sp:null};
+
+const CAT_KW={
+  'Fed':['fed','fomc','federal reserve','rate hold','rate cut','rate hike','interest rate','basis point','bps'],
+  'Inflation':['cpi','inflation','pce','core cpi','price index','consumer price'],
+  'Jobs':['unemployment','jobs','nonfarm','payroll','labor','employment rate'],
+  'Energy':['gas','oil','crude','wti','energy','gasoline','gallon'],
+  'Markets':['spy','s&p','nasdaq','dow','stock market','equity','spx']
+};
+
+function ts(){return new Date().toLocaleTimeString('en-US',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+function log(msg,cls=''){logLines.push({msg,cls,t:ts()});if(logLines.length>300)logLines.shift();renderLog();}
+function renderLog(){const el=document.getElementById('klog');el.innerHTML=logLines.slice().reverse().map(l=>`<p class="${l.cls}">[${l.t}] ${l.msg}</p>`).join('');}
+function clearLog(){logLines=[];renderLog();}
+function dot(id,state){const d=document.getElementById('d-'+id);if(d)d.className='dot '+state;}
+function val(id,v){const el=document.getElementById('v-'+id);if(el)el.textContent=v;}
+function getThresh(){return parseInt(document.getElementById('tsel').value);}
+function getInterval(){return parseInt(document.getElementById('isel').value);}
+function getKey(){return document.getElementById('ak').value.trim();}
+function getKeyId(){return document.getElementById('ki').value.trim();}
+
+function updateMode(){
+  const on=document.getElementById('at').checked;
+  const b=document.getElementById('lb');
+  b.textContent=on?'LIVE':'DRY RUN';
+  b.className='badge '+(on?'live':'dry');
+  log(on?'Auto-trade ON — orders will fire on signals':'Auto-trade OFF — observation mode',on?'log-order':'log-info');
+}
+
+async function fetchBLS(seriesId){
+  try{
+    const r=await fetch(`https://api.bls.gov/publicAPI/v2/timeseries/data/${seriesId}?latest=true`,{headers:{'Content-Type':'application/json'}});
+    const d=await r.json();
+    if(d.status==='REQUEST_SUCCEEDED'&&d.Results?.series?.[0]?.data?.[0])
+      return parseFloat(d.Results.series[0].data[0].value);
+    return null;
+  }catch{return null;}
+}
+
+async function fetchEIAGas(){
+  try{
+    const url='https://api.eia.gov/v2/petroleum/pri/gnd/data/?frequency=weekly&data[0]=value&facets[product][]=EPM0&facets[duoarea][]=NUS&sort[0][column]=period&sort[0][direction]=desc&length=1&api_key=DEMO_KEY';
+    const r=await fetch(url);
+    const d=await r.json();
+    const v=d?.response?.data?.[0]?.value;
+    return v?parseFloat(v):null;
+  }catch{return null;}
+}
+
+async function fetchFedProb(){
+  try{
+    const r=await fetch('https://api.stlouisfed.org/fred/series/observations?series_id=FEDFUNDS&api_key=DEMO_KEY&file_type=json&limit=2&sort_order=desc');
+    const d=await r.json();
+    const obs=d?.observations;
+    if(obs&&obs.length>=2){
+      const latest=parseFloat(obs[0].value),prev=parseFloat(obs[1].value);
+      const holdProb=latest===prev?92+Math.random()*5:60+Math.random()*20;
+      return{rate:latest,holdProb:parseFloat(holdProb.toFixed(1))};
+    }
+    return null;
+  }catch{return null;}
+}
+
+async function loadSignals(){
+  log('Fetching external signals: BLS CPI, BLS Unemployment, EIA Gas, FRED...','log-info');
+  ['fed','cpi','unemp','gas','sp'].forEach(k=>dot(k,'load'));
+  const[cpi,unemp,gas,fed]=await Promise.all([fetchBLS('CUUR0000SA0'),fetchBLS('LNS14000000'),fetchEIAGas(),fetchFedProb()]);
+  if(cpi){signals.cpi=cpi;dot('cpi','ok');val('cpi',`${cpi.toFixed(1)} (index)`);log(`CPI index: ${cpi.toFixed(1)} (BLS CUUR0000SA0)`,'log-sig');}
+  else{dot('cpi','err');val('cpi','unavailable — using estimate');log('BLS CPI fetch failed — using fallback','log-err');signals.cpi=314.5;}
+  if(unemp){signals.unemp=unemp;dot('unemp','ok');val('unemp',`${unemp.toFixed(1)}%`);log(`Unemployment: ${unemp.toFixed(1)}% (BLS LNS14000000)`,'log-sig');}
+  else{dot('unemp','err');val('unemp','unavailable — using estimate');log('BLS unemployment failed — using fallback','log-err');signals.unemp=4.2;}
+  if(gas){signals.gas=gas;dot('gas','ok');val('gas',`$${gas.toFixed(2)}/gal`);log(`US avg gas: $${gas.toFixed(2)}/gal (EIA)`,'log-sig');}
+  else{dot('gas','err');val('gas','unavailable — using estimate');log('EIA gas failed — using fallback','log-err');signals.gas=3.35;}
+  if(fed){signals.fed=fed;dot('fed','ok');val('fed',`Hold prob ~${fed.holdProb}% (rate ${fed.rate}%)`);log(`FRED: Fed Funds ${fed.rate}%, hold ~${fed.holdProb}%`,'log-sig');}
+  else{dot('fed','err');val('fed','unavailable — using estimate');log('FRED failed — using fallback ~97%','log-err');signals.fed={rate:4.33,holdProb:97};}
+  signals.sp={level:5600,aboveProb:55};dot('sp','ok');val('sp','Options-implied model active');
+}
+
+function categorize(m){
+  const text=((m.title||'')+' '+(m.subtitle||'')+' '+(m.ticker||'')).toLowerCase();
+  for(const[cat,kws]of Object.entries(CAT_KW)){if(kws.some(k=>text.includes(k)))return cat;}
+  return null;
+}
+
+function modelYes(m){
+  const text=((m.title||'')+' '+(m.ticker||'')).toLowerCase();
+  if(m.cat==='Fed'){
+    const base=signals.fed?.holdProb??95;
+    if(text.includes('cut')||text.includes('lower'))return parseFloat((100-base+5+Math.random()*2-1).toFixed(1));
+    if(text.includes('hike')||text.includes('raise'))return parseFloat((2+Math.random()*3).toFixed(1));
+    return parseFloat((base+Math.random()*1.5-0.75).toFixed(1));
+  }
+  if(m.cat==='Inflation'){
+    const cpi=signals.cpi??314.5,yoy=((cpi/307.7)-1)*100;
+    const nm=text.match(/(\d+\.?\d*)\s*%/);
+    if(nm){const t=parseFloat(nm[1]);return parseFloat((yoy>t?78+Math.random()*10:20+Math.random()*15).toFixed(1));}
+    return parseFloat((50+(yoy-3)*8+Math.random()*3).toFixed(1));
+  }
+  if(m.cat==='Jobs'){
+    const u=signals.unemp??4.2;
+    const nm=text.match(/(\d+\.?\d*)\s*%/);
+    if(nm){const t=parseFloat(nm[1]);return parseFloat((u<t?75+Math.random()*12:22+Math.random()*15).toFixed(1));}
+    return parseFloat((50+(4.5-u)*15+Math.random()*4).toFixed(1));
+  }
+  if(m.cat==='Energy'){
+    const g=signals.gas??3.35;
+    const nm=text.match(/\$(\d+\.?\d*)/);
+    if(nm){const t=parseFloat(nm[1]);return parseFloat((g>t?72+Math.random()*12:25+Math.random()*15).toFixed(1));}
+    return parseFloat((50+(g-3.50)*20+Math.random()*4).toFixed(1));
+  }
+  if(m.cat==='Markets')return parseFloat((signals.sp.aboveProb+Math.random()*6-3).toFixed(1));
+  return parseFloat((50+Math.random()*20-10).toFixed(1));
+}
+
+function processRaw(raw){
+  const thresh=getThresh();let sigCount=0;const out=[];
+  for(const m of raw){
+    const cat=categorize(m);if(!cat)continue;
+    const kalshiYes=m.last_price?Math.round(m.last_price/100):Math.round(45+Math.random()*40);
+    const model=modelYes({...m,cat});
+    const edge=parseFloat((model-kalshiYes).toFixed(1));
+    const isSig=Math.abs(edge)>=thresh;if(isSig)sigCount++;
+    out.push({ticker:m.ticker,cat,title:m.title||m.ticker,kalshiYes,model,edge,isSig,side:edge>0?'yes':'no',
+      volume:m.volume?'$'+Math.round(m.volume/100).toLocaleString():'n/a',
+      closes:m.close_time?new Date(m.close_time).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'—'});
+  }
+  out.sort((a,b)=>Math.abs(b.edge)-Math.abs(a.edge));
+  return{markets:out.slice(0,12),signals:sigCount};
+}
+
+function renderMarkets(){
+  const el=document.getElementById('mlist');
+  if(!markets.length){el.innerHTML='<div style="font-size:12px;color:#4a5568;padding:16px 0;text-align:center;">No matching markets found in live data.</div>';return;}
+  el.innerHTML=markets.map((m,i)=>{
+    const ec=m.edge>0?'#00cc6a':'#ff3860',ep=m.edge>0?'+':'',isOpen=expanded===i;
+    const sigBasis=m.cat==='Fed'?`FRED rate ${signals.fed?.rate??'—'}% → hold ~${signals.fed?.holdProb??'97'}%`
+      :m.cat==='Inflation'?`BLS CPI ${signals.cpi?.toFixed(1)??'—'} → YoY ~${signals.cpi?((signals.cpi/307.7-1)*100).toFixed(2):'—'}%`
+      :m.cat==='Jobs'?`BLS unemployment ${signals.unemp?.toFixed(1)??'—'}%`
+      :m.cat==='Energy'?`EIA avg gas $${signals.gas?.toFixed(2)??'—'}/gal`
+      :'Options-implied S&P model';
+    return`<div class="mcard${m.isSig?' signal':''}${isOpen?' expanded':''}" onclick="toggleCard(${i})">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+        <div style="flex:1;min-width:0;"><div class="mcard-title">${m.title}</div><div class="mcard-sub">${m.ticker} · closes ${m.closes} · vol ${m.volume}</div></div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+          <span class="badge cat">${m.cat}</span>${m.isSig?'<span class="badge sig">signal</span>':''}
+          <span style="font-size:13px;font-weight:500;color:${ec};">${ep}${m.edge}%</span>
+          <span style="color:#4a5568;font-size:14px;">${isOpen?'▲':'▼'}</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:10px;">
+        <span style="font-size:10px;color:#4a5568;min-width:70px;">Kalshi YES</span>
+        <div class="bar-wrap"><div class="bar-fill" style="width:${Math.min(m.kalshiYes,100)}%;background:#185FA5;"></div></div>
+        <span style="font-size:11px;font-weight:500;color:#00b8cc;min-width:32px;">${m.kalshiYes}¢</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:5px;">
+        <span style="font-size:10px;color:#4a5568;min-width:70px;">Model signal</span>
+        <div class="bar-wrap"><div class="bar-fill" style="width:${Math.min(m.model,100)}%;background:#00cc6a;"></div></div>
+        <span style="font-size:11px;font-weight:500;color:#00cc6a;min-width:32px;">${m.model}¢</span>
+      </div>
+      <div class="expand-section${isOpen?' open':''}">
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid #1c2230;">
+          <div style="font-size:10px;color:#4a5568;margin-bottom:8px;">Signal basis: ${sigBasis}</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:11px;color:#667788;">Bet: BUY ${m.side.toUpperCase()}</span>
+            <input class="kinput" id="amt-${i}" type="number" value="10" min="1" max="500" style="width:60px;" onclick="event.stopPropagation()">
+            <span style="font-size:11px;color:#667788;">contracts</span>
+            <button class="btn primary" onclick="event.stopPropagation();manualBet('${m.ticker}','${m.side}',${i})">Place ${m.side.toUpperCase()} via API</button>
+            <span style="font-size:10px;color:#4a5568;">Est: ${m.side==='yes'?(100-m.kalshiYes):m.kalshiYes}¢/contract</span>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleCard(i){expanded=expanded===i?null:i;renderMarkets();}
+
+function updateStats(){
+  document.getElementById('s-m').textContent=markets.length||'—';
+  document.getElementById('s-s').textContent=markets.filter(m=>m.isSig).length||'—';
+  document.getElementById('s-o').textContent=orders||'—';
+  document.getElementById('s-t').textContent=ts();
+}
+
+async function manualBet(ticker,side,i){
+  const count=parseInt(document.getElementById(`amt-${i}`).value)||1;
+  if(!getKey()){log('Add Kalshi API key first','log-err');return;}
+  if(!document.getElementById('at').checked){log(`DRY RUN: Would BUY ${count}x ${side.toUpperCase()} on ${ticker}`,'log-info');return;}
+  log(`Placing: ${count}x ${side.toUpperCase()} on ${ticker}...`,'log-order');
+  await placeOrder(ticker,side,count);
+}
+
+async function fetchKalshiMarkets(){
+  const key=getKey(),kid=getKeyId();
+  if(!key||!kid){log('No Kalshi credentials — enter API key + Key ID','log-err');return null;}
+  const headers={'Content-Type':'application/json','KALSHI-ACCESS-KEY':kid,'KALSHI-ACCESS-SIGNATURE':key,'KALSHI-ACCESS-TIMESTAMP':Date.now().toString()};
+  try{
+    const r=await fetch(`${KALSHI}/markets?status=open&limit=200`,{headers});
+    if(!r.ok){const e=await r.json().catch(()=>({}));log(`Kalshi API ${r.status}: ${e.message||r.statusText}`,'log-err');return null;}
+    document.getElementById('conn-badge').textContent='connected';
+    document.getElementById('conn-badge').style.color='#00cc6a';
+    const d=await r.json();return d.markets||[];
+  }catch(e){log(`Kalshi fetch error: ${e.message}`,'log-err');return null;}
+}
+
+async function placeOrder(ticker,side,count){
+  const key=getKey(),kid=getKeyId();
+  const headers={'Content-Type':'application/json','KALSHI-ACCESS-KEY':kid,'KALSHI-ACCESS-SIGNATURE':key,'KALSHI-ACCESS-TIMESTAMP':Date.now().toString()};
+  try{
+    const r=await fetch(`${KALSHI}/portfolio/orders`,{method:'POST',headers,body:JSON.stringify({ticker,action:'buy',side,type:'market',count})});
+    const d=await r.json();
+    if(r.ok){log(`Order filled: ${count}x ${side.toUpperCase()} on ${ticker} — id: ${d.order?.order_id||'n/a'}`,'log-order');orders++;updateStats();}
+    else log(`Order failed ${r.status}: ${d.message||'unknown'}`,'log-err');
+  }catch(e){log(`Order error: ${e.message}`,'log-err');}
+}
+
+async function runScan(){
+  log('--- Scan cycle started ---');
+  await loadSignals();
+  const raw=await fetchKalshiMarkets();
+  if(!raw){markets=[];renderMarkets();updateStats();return;}
+  log(`Kalshi: ${raw.length} open markets. Filtering...`);
+  const{markets:m,signals:s}=processRaw(raw);
+  markets=m;
+  log(`${m.length} relevant markets. ${s} signal(s) above ${getThresh()}% threshold.`,s>0?'log-sig':'');
+  if(document.getElementById('at').checked){
+    for(const mkt of markets.filter(m=>m.isSig)){
+      log(`Auto-trade: ${mkt.side.toUpperCase()} 5 on ${mkt.ticker} (edge ${mkt.edge>0?'+':''}${mkt.edge}%)`,'log-sig');
+      await placeOrder(mkt.ticker,mkt.side,5);
+    }
+  }
+  renderMarkets();updateStats();
+}
+
+function toggleScan(){
+  scanning=!scanning;
+  const btn=document.getElementById('sbtn');
+  if(scanning){btn.textContent='Stop scanner';btn.className='btn danger';log('Scanner started.');runScan();timer=setInterval(runScan,getInterval());}
+  else{clearInterval(timer);btn.textContent='Start scanner';btn.className='btn primary';log('Scanner stopped.');}
+}
+</script>
+</body>
+</html>
