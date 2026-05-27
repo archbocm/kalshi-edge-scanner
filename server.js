@@ -6,12 +6,17 @@ const PORT = process.env.PORT || 3000;
 const KALSHI_KEY_ID = process.env.KALSHI_KEY_ID || '';
 const KALSHI_SECRET = (process.env.KALSHI_SECRET || '').replace(/\\n/g, '\n');
 
-function signRequest(timestamp, method, path) {
-  const message = timestamp + method + path;
-  const sign = crypto.createSign('RSA-SHA256');
+function signRequest(timestamp, method, fullPath) {
+  const pathOnly = fullPath.split('?')[0];
+  const message = timestamp + method.toUpperCase() + pathOnly;
+  const sign = crypto.createSign('SHA256');
   sign.update(message);
   sign.end();
-  return sign.sign(KALSHI_SECRET, 'base64');
+  return sign.sign({
+    key: KALSHI_SECRET,
+    padding: crypto.constants.RSA_PKCS1_PSS_PADDING,
+    saltLength: 32
+  }, 'base64');
 }
 
 function proxyRequest(targetUrl, method, body, res) {
