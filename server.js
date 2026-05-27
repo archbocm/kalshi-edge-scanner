@@ -3,7 +3,7 @@ const http = require('http');
 
 const PORT = process.env.PORT || 3000;
 const KALSHI_KEY_ID = process.env.KALSHI_KEY_ID || '';
-const KALSHI_SECRET = process.env.KALSHI_SECRET || '';
+const KALSHI_SECRET = (process.env.KALSHI_SECRET || '').replace(/\\n/g, '\n');
 
 function proxyRequest(targetUrl, method, body, res) {
   const url = new URL(targetUrl);
@@ -14,7 +14,7 @@ function proxyRequest(targetUrl, method, body, res) {
     headers: {
       'Content-Type': 'application/json',
       'KALSHI-ACCESS-KEY': KALSHI_KEY_ID,
-      'KALSHI-ACCESS-SIGNATURE': KALSHI_SECRET,
+      'KALSHI-ACCESS-SIGNATURE': KALSHI_SECRET.replace(/\n/g, ''),
       'KALSHI-ACCESS-TIMESTAMP': Date.now().toString()
     }
   };
@@ -22,7 +22,7 @@ function proxyRequest(targetUrl, method, body, res) {
   if (body) options.headers['Content-Length'] = Buffer.byteLength(body);
 
   const req = https.request(options, (proxyRes) => {
-res.writeHead(proxyRes.statusCode, {
+    res.writeHead(proxyRes.statusCode, {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Headers': '*',
