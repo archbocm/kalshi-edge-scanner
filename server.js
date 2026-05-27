@@ -5,21 +5,18 @@ const crypto = require('crypto');
 const PORT = process.env.PORT || 3000;
 const KALSHI_KEY_ID = process.env.KALSHI_KEY_ID || '';
 const RAW_SECRET = process.env.KALSHI_SECRET || '';
-
-const KALSHI_SECRET = RAW_SECRET.includes('-----BEGIN')
-  ? RAW_SECRET.replace(/\\n/g, '\n')
-  : RAW_SECRET;
+const KALSHI_SECRET = RAW_SECRET.replace(/\\n/g, '\n');
 
 function signRequest(timestamp, method, fullPath) {
   const pathOnly = fullPath.split('?')[0];
   const message = timestamp + method.toUpperCase() + pathOnly;
-  const sign = crypto.createSign('SHA256');
+  const sign = crypto.createSign('RSA-SHA256');
   sign.update(message);
   sign.end();
   return sign.sign({
     key: KALSHI_SECRET,
     padding: crypto.constants.RSA_PKCS1_PSS_PADDING,
-    saltLength: 32
+    saltLength: crypto.constants.RSA_PSS_SALTLEN_DIGEST
   }, 'base64');
 }
 
