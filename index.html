@@ -133,6 +133,7 @@
 </div>
 
 <script>
+const PROXY = 'https://YOUR-RAILWAY-URL.railway.app';
 const KALSHI = 'https://trading-api.kalshi.com/trade-api/v2';
 let scanning=false, timer=null, expanded=null, orders=0, logLines=[], markets=[];
 let signals={fed:null,cpi:null,unemp:null,gas:null,sp:null};
@@ -330,9 +331,9 @@ async function manualBet(ticker,side,i){
 async function fetchKalshiMarkets(){
   const key=getKey(),kid=getKeyId();
   if(!key||!kid){log('No Kalshi credentials — enter API key + Key ID','log-err');return null;}
-  const headers={'Content-Type':'application/json','KALSHI-ACCESS-KEY':kid,'KALSHI-ACCESS-SIGNATURE':key,'KALSHI-ACCESS-TIMESTAMP':Date.now().toString()};
   try{
-    const r=await fetch(`${KALSHI}/markets?status=open&limit=200`,{headers});
+    const target=encodeURIComponent(`${KALSHI}/markets?status=open&limit=200`);
+const r=await fetch(`${PROXY}/?url=${target}&kalshi_key=${encodeURIComponent(key)}&kalshi_key_id=${encodeURIComponent(kid)}`);
     if(!r.ok){const e=await r.json().catch(()=>({}));log(`Kalshi API ${r.status}: ${e.message||r.statusText}`,'log-err');return null;}
     document.getElementById('conn-badge').textContent='connected';
     document.getElementById('conn-badge').style.color='#00cc6a';
