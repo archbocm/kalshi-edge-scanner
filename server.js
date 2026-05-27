@@ -28,7 +28,11 @@ function proxyRequest(targetUrl, res, extraHeaders = {}) {
 
 http.createServer((req, res) => {
   if (req.method === 'OPTIONS') {
-    res.writeHead(204, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*', 'Access-Control-Allow-Methods': '*' });
+    res.writeHead(204, {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': '*',
+      'Access-Control-Allow-Methods': '*'
+    });
     res.end();
     return;
   }
@@ -37,8 +41,8 @@ http.createServer((req, res) => {
   const target = url.searchParams.get('url');
 
   if (!target) {
-    res.writeHead(400);
-    res.end(JSON.stringify({ error: 'Missing url param' }));
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+    res.end(JSON.stringify({ status: 'Kalshi proxy running' }));
     return;
   }
 
