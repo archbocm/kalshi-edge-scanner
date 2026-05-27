@@ -59,7 +59,7 @@
     .log-order { color: #00b8cc; }
     .log-err { color: #ff3860; }
     .log-info { color: #ffd166; }
-    label { font-size: 11px; color: #667788; display: flex; align-items: center; gap: 4px; cursor: pointer; }
+    label { font-size: 11px; color: #667788; display: flex; align-items: center; gap: 4px; cursor: pointer; white-space: nowrap; }
     .api-ref { font-size: 10px; color: #4a5568; line-height: 1.8; margin-top: 12px; padding: 10px 12px; background: #070a0f; border-radius: 6px; }
     .api-ref .method-get { color: #00b8cc; }
     .api-ref .method-post { color: #00cc6a; }
@@ -80,20 +80,11 @@
     <select id="isel"><option value="30000" selected>30s</option><option value="60000">1m</option><option value="300000">5m</option></select>
     <select id="tsel"><option value="3">3% edge</option><option value="5" selected>5% edge</option><option value="7">7% edge</option><option value="10">10% edge</option></select>
     <button id="sbtn" class="btn primary" onclick="toggleScan()">Start scanner</button>
-  </div>
-
-  <!-- API Key -->
-  <div class="panel" style="margin-top:10px;">
-    <div class="panel-title">Kalshi credentials</div>
-    <div class="row">
-      <input id="ak" type="password" placeholder="API secret key..." style="flex:1;min-width:200px;">
-      <input id="ki" type="text" placeholder="Key ID..." style="width:140px;">
-      <label><input type="checkbox" id="at" onchange="updateMode()"> auto-trade</label>
-    </div>
+    <label><input type="checkbox" id="at" onchange="updateMode()"> auto-trade</label>
   </div>
 
   <!-- Signal sources -->
-  <div class="panel">
+  <div class="panel" style="margin-top:10px;">
     <div class="panel-title">External signal sources</div>
     <div class="src-row"><div class="dot idle" id="d-fed"></div><span style="min-width:110px;color:#667788;">Fed probability</span><span id="v-fed">—</span><span class="badge est" style="margin-left:auto;">FRED + implied</span></div>
     <div class="src-row"><div class="dot idle" id="d-cpi"></div><span style="min-width:110px;color:#667788;">CPI (BLS API)</span><span id="v-cpi">—</span><span class="badge real" style="margin-left:auto;">Live</span></div>
@@ -121,19 +112,19 @@
       <span style="font-size:10px;color:#4a5568;text-transform:uppercase;letter-spacing:0.07em;">Activity log</span>
       <button class="btn" style="font-size:11px;padding:2px 8px;margin-left:auto;" onclick="clearLog()">Clear</button>
     </div>
-    <div class="log-box" id="klog"><p>Scanner idle. Enter Kalshi credentials and press Start.</p></div>
+    <div class="log-box" id="klog"><p>Scanner idle. Press Start to begin.</p></div>
   </div>
 
   <!-- API ref -->
   <div class="api-ref">
     <div><span class="method-get">GET</span> <code>https://trading-api.kalshi.com/trade-api/v2/markets?status=open&limit=200</code></div>
     <div><span class="method-post">POST</span> <code>https://trading-api.kalshi.com/trade-api/v2/portfolio/orders</code></div>
-    <div style="margin-top:4px;color:#2a3a50;">Get your API key: kalshi.com → Settings → API Access</div>
+    <div style="margin-top:4px;color:#2a3a50;">Credentials loaded server-side via Railway environment variables</div>
   </div>
 </div>
 
 <script>
-const PROXY = 'kalshi-edge-scanner-production-77a1.up.railway.app';
+const PROXY = 'REPLACE_WITH_YOUR_RAILWAY_URL';
 const KALSHI = 'https://trading-api.kalshi.com/trade-api/v2';
 let scanning=false, timer=null, expanded=null, orders=0, logLines=[], markets=[];
 let signals={fed:null,cpi:null,unemp:null,gas:null,sp:null};
@@ -154,8 +145,8 @@ function dot(id,state){const d=document.getElementById('d-'+id);if(d)d.className
 function val(id,v){const el=document.getElementById('v-'+id);if(el)el.textContent=v;}
 function getThresh(){return parseInt(document.getElementById('tsel').value);}
 function getInterval(){return parseInt(document.getElementById('isel').value);}
-function getKey(){return document.getElementById('ak').value.trim();}
-function getKeyId(){return document.getElementById('ki').value.trim();}
+function getKey(){return 'server';}
+function getKeyId(){return 'server';}
 
 function updateMode(){
   const on=document.getElementById('at').checked;
@@ -300,7 +291,7 @@ function renderMarkets(){
           <div style="font-size:10px;color:#4a5568;margin-bottom:8px;">Signal basis: ${sigBasis}</div>
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <span style="font-size:11px;color:#667788;">Bet: BUY ${m.side.toUpperCase()}</span>
-            <input class="kinput" id="amt-${i}" type="number" value="10" min="1" max="500" style="width:60px;" onclick="event.stopPropagation()">
+            <input id="amt-${i}" type="number" value="10" min="1" max="500" style="width:60px;" onclick="event.stopPropagation()">
             <span style="font-size:11px;color:#667788;">contracts</span>
             <button class="btn primary" onclick="event.stopPropagation();manualBet('${m.ticker}','${m.side}',${i})">Place ${m.side.toUpperCase()} via API</button>
             <span style="font-size:10px;color:#4a5568;">Est: ${m.side==='yes'?(100-m.kalshiYes):m.kalshiYes}¢/contract</span>
@@ -322,18 +313,15 @@ function updateStats(){
 
 async function manualBet(ticker,side,i){
   const count=parseInt(document.getElementById(`amt-${i}`).value)||1;
-  if(!getKey()){log('Add Kalshi API key first','log-err');return;}
   if(!document.getElementById('at').checked){log(`DRY RUN: Would BUY ${count}x ${side.toUpperCase()} on ${ticker}`,'log-info');return;}
   log(`Placing: ${count}x ${side.toUpperCase()} on ${ticker}...`,'log-order');
   await placeOrder(ticker,side,count);
 }
 
 async function fetchKalshiMarkets(){
-  const key=getKey(),kid=getKeyId();
-  if(!key||!kid){log('No Kalshi credentials — enter API key + Key ID','log-err');return null;}
   try{
     const target=encodeURIComponent(`${KALSHI}/markets?status=open&limit=200`);
-const r=await fetch(`${PROXY}/?url=${target}&kalshi_key=${encodeURIComponent(key)}&kalshi_key_id=${encodeURIComponent(kid)}`);
+    const r=await fetch(`${PROXY}/?url=${target}`);
     if(!r.ok){const e=await r.json().catch(()=>({}));log(`Kalshi API ${r.status}: ${e.message||r.statusText}`,'log-err');return null;}
     document.getElementById('conn-badge').textContent='connected';
     document.getElementById('conn-badge').style.color='#00cc6a';
@@ -342,10 +330,13 @@ const r=await fetch(`${PROXY}/?url=${target}&kalshi_key=${encodeURIComponent(key
 }
 
 async function placeOrder(ticker,side,count){
-  const key=getKey(),kid=getKeyId();
-  const headers={'Content-Type':'application/json','KALSHI-ACCESS-KEY':kid,'KALSHI-ACCESS-SIGNATURE':key,'KALSHI-ACCESS-TIMESTAMP':Date.now().toString()};
   try{
-    const r=await fetch(`${KALSHI}/portfolio/orders`,{method:'POST',headers,body:JSON.stringify({ticker,action:'buy',side,type:'market',count})});
+    const target=encodeURIComponent(`${KALSHI}/portfolio/orders`);
+    const r=await fetch(`${PROXY}/?url=${target}`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ticker,action:'buy',side,type:'market',count})
+    });
     const d=await r.json();
     if(r.ok){log(`Order filled: ${count}x ${side.toUpperCase()} on ${ticker} — id: ${d.order?.order_id||'n/a'}`,'log-order');orders++;updateStats();}
     else log(`Order failed ${r.status}: ${d.message||'unknown'}`,'log-err');
