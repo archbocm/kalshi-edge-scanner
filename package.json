@@ -1,0 +1,12 @@
+{
+  "name": "kalshi-edge-scanner-proxy",
+  "version": "1.0.0",
+  "description": "CORS proxy for Kalshi Edge Scanner",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
