@@ -9,7 +9,7 @@ const KALSHI_SECRET = RAW_SECRET.replace(/\\n/g, '\n');
 const FRED_API_KEY = process.env.FRED_API_KEY || 'DEMO_KEY';
 const EIA_API_KEY = process.env.EIA_API_KEY || 'DEMO_KEY';
 
-function signRequest(timestamp, method, fullPath)
+function signRequest(timestamp, method, fullPath) {
   const pathOnly = fullPath.split('?')[0];
   const message = timestamp + method.toUpperCase() + pathOnly;
   const sign = crypto.createSign('RSA-SHA256');
@@ -22,20 +22,20 @@ function signRequest(timestamp, method, fullPath)
   }, 'base64');
 }
 
-function proxyRequest(targetUrl, method, body, res) {
-  targetUrl = targetUrl
-    .replace('api_key=DEMO_KEY', `api_key=${FRED_API_KEY}`)
-    .replace('api_key=DEMO_KEY', `api_key=${EIA_API_KEY}`);
-
-  // More specific replacements
-if (targetUrl.includes('stlouisfed.org')) {
-    targetUrl = targetUrl.replace('api_key=DEMO_KEY', `api_key=${FRED_API_KEY}`);
-    targetUrl = targetUrl.replace('api_key%3DDEMO_KEY', `api_key%3D${FRED_API_KEY}`);
+function injectApiKeys(targetUrl) {
+  if (targetUrl.includes('stlouisfed.org')) {
+    targetUrl = targetUrl.replace('api_key=DEMO_KEY', 'api_key=' + FRED_API_KEY);
+    targetUrl = targetUrl.replace('api_key%3DDEMO_KEY', 'api_key%3D' + FRED_API_KEY);
   }
   if (targetUrl.includes('eia.gov')) {
-    targetUrl = targetUrl.replace('api_key=DEMO_KEY', `api_key=${EIA_API_KEY}`);
-    targetUrl = targetUrl.replace('api_key%3DDEMO_KEY', `api_key%3D${EIA_API_KEY}`);
+    targetUrl = targetUrl.replace('api_key=DEMO_KEY', 'api_key=' + EIA_API_KEY);
+    targetUrl = targetUrl.replace('api_key%3DDEMO_KEY', 'api_key%3D' + EIA_API_KEY);
   }
+  return targetUrl;
+}
+
+function proxyRequest(targetUrl, method, body, res) {
+  targetUrl = injectApiKeys(targetUrl);
 
   const url = new URL(targetUrl);
   const isKalshi = url.hostname.includes('kalshi');
@@ -43,7 +43,7 @@ if (targetUrl.includes('stlouisfed.org')) {
   const headers = { 'Content-Type': 'application/json' };
 
   if (isKalshi) {
-    let signature;
+    var signature;
     try {
       signature = signRequest(timestamp, method, url.pathname + url.search);
     } catch (e) {
@@ -56,16 +56,18 @@ if (targetUrl.includes('stlouisfed.org')) {
     headers['KALSHI-ACCESS-TIMESTAMP'] = timestamp;
   }
 
-  if (body) headers['Content-Length'] = Buffer.byteLength(body);
+  if (body) {
+    headers['Content-Length'] = Buffer.byteLength(body);
+  }
 
   const options = {
     hostname: url.hostname,
     path: url.pathname + url.search,
     method: method,
-    headers
+    headers: headers
   };
 
-  const req = https.request(options, (proxyRes) => {
+  const req = https.request(options, function(proxyRes) {
     res.writeHead(proxyRes.statusCode, {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
@@ -75,16 +77,18 @@ if (targetUrl.includes('stlouisfed.org')) {
     proxyRes.pipe(res);
   });
 
-  req.on('error', (e) => {
+  req.on('error', function(e) {
     res.writeHead(500);
     res.end(JSON.stringify({ error: e.message }));
   });
 
-  if (body) req.write(body);
+  if (body) {
+    req.write(body);
+  }
   req.end();
 }
 
-http.createServer((req, res) => {
+http.createServer(function(req, res) {
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
       'Access-Control-Allow-Origin': '*',
@@ -95,8 +99,8 @@ http.createServer((req, res) => {
     return;
   }
 
-  const url = new URL(req.url, `http://localhost:${PORT}`);
-  const target = url.searchParams.get('url');
+  var url = new URL(req.url, 'http://localhost:' + PORT);
+  var target = url.searchParams.get('url');
 
   if (!target) {
     res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
@@ -105,11 +109,11 @@ http.createServer((req, res) => {
   }
 
   if (req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => body += chunk);
-    req.on('end', () => proxyRequest(target, 'POST', body, res));
+    var body = '';
+    req.on('data', function(chunk) { body += chunk; });
+    req.on('end', function() { proxyRequest(target, 'POST', body, res); });
   } else {
     proxyRequest(target, 'GET', null, res);
   }
 
-}).listen(PORT, () => console.log(`Proxy running on port ${PORT}`));
+}).listen(PORT, function() { console.log('Proxy running on port ' + PORT); });
