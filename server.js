@@ -9,7 +9,7 @@ const KALSHI_SECRET = RAW_SECRET.replace(/\\n/g, '\n');
 const FRED_API_KEY = process.env.FRED_API_KEY || 'DEMO_KEY';
 const EIA_API_KEY = process.env.EIA_API_KEY || 'DEMO_KEY';
 
-function signRequest(timestamp, method, fullPath) {
+function signRequest(timestamp, method, fullPath)
   const pathOnly = fullPath.split('?')[0];
   const message = timestamp + method.toUpperCase() + pathOnly;
   const sign = crypto.createSign('RSA-SHA256');
@@ -28,11 +28,13 @@ function proxyRequest(targetUrl, method, body, res) {
     .replace('api_key=DEMO_KEY', `api_key=${EIA_API_KEY}`);
 
   // More specific replacements
-  if (targetUrl.includes('stlouisfed.org')) {
-    targetUrl = targetUrl.replace(/api_key=[^&]+/, `api_key=${FRED_API_KEY}`);
+if (targetUrl.includes('stlouisfed.org')) {
+    targetUrl = targetUrl.replace('api_key=DEMO_KEY', `api_key=${FRED_API_KEY}`);
+    targetUrl = targetUrl.replace('api_key%3DDEMO_KEY', `api_key%3D${FRED_API_KEY}`);
   }
   if (targetUrl.includes('eia.gov')) {
-    targetUrl = targetUrl.replace(/api_key=[^&]+/, `api_key=${EIA_API_KEY}`);
+    targetUrl = targetUrl.replace('api_key=DEMO_KEY', `api_key=${EIA_API_KEY}`);
+    targetUrl = targetUrl.replace('api_key%3DDEMO_KEY', `api_key%3D${EIA_API_KEY}`);
   }
 
   const url = new URL(targetUrl);
