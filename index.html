@@ -83,7 +83,7 @@
 
   <div class="panel" style="margin-top:10px;">
     <div class="panel-title">External signal sources</div>
-    <div class="src-row"><div class="dot idle" id="d-fed"></div><span style="min-width:110px;color:#667788;">Fed probability</span><span id="v-fed">—</span><span class="badge est" style="margin-left:auto;">FRED + implied</span></div>
+    <div class="src-row"><div class="dot idle" id="d-fed"></div><span style="min-width:110px;color:#667788;">Fed probability</span><span id="v-fed">—</span><span class="badge est" style="margin-left:auto;">FRED live</span></div>
     <div class="src-row"><div class="dot idle" id="d-cpi"></div><span style="min-width:110px;color:#667788;">CPI (BLS API)</span><span id="v-cpi">—</span><span class="badge real" style="margin-left:auto;">Live</span></div>
     <div class="src-row"><div class="dot idle" id="d-unemp"></div><span style="min-width:110px;color:#667788;">Unemployment</span><span id="v-unemp">—</span><span class="badge real" style="margin-left:auto;">Live</span></div>
     <div class="src-row"><div class="dot idle" id="d-gas"></div><span style="min-width:110px;color:#667788;">Gas price (EIA)</span><span id="v-gas">—</span><span class="badge real" style="margin-left:auto;">Live</span></div>
@@ -117,17 +117,17 @@
 </div>
 
 <script>
-const PROXY = 'https://kalshi-edge-scanner-production-77a1.up.railway.app';
+const PROXY = 'kalshi-edge-scanner-production-77a1.up.railway.app';
 const KALSHI = 'https://api.elections.kalshi.com/trade-api/v2';
 let scanning=false, timer=null, expanded=null, orders=0, logLines=[], markets=[];
 let signals={fed:null,cpi:null,unemp:null,gas:null,sp:null};
 
 const CAT_KW={
-  'Fed':['fomc','federal reserve','rate hold','rate cut','rate hike','interest rate','basis point','fed funds','federal open market'],
-  'Inflation':['cpi','inflation','pce','core cpi','price index','consumer price'],
-  'Jobs':['unemployment rate','nonfarm','payroll','labor force','jobless claims'],
-  'Energy':['gas price','oil price','crude oil','wti','gasoline','price per gallon'],
-  'Markets':['s&p 500','nasdaq','dow jones','stock market close','spx']
+  'Fed':['fomc','federal reserve','interest rate','rate cut','rate hike','rate hold','fed funds','basis point','federal open','monetary policy','jerome powell'],
+  'Inflation':['cpi','inflation','pce','price index','consumer price','core inflation','deflation'],
+  'Jobs':['unemployment','nonfarm','payroll','jobless','labor force','job growth','jobs report'],
+  'Energy':['gas price','oil price','crude','wti','gasoline','barrel','energy price','gallon'],
+  'Markets':['s&p','nasdaq','dow','stock market','spx','equity market','market close','market index']
 };
 
 function ts(){return new Date().toLocaleTimeString('en-US',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});}
