@@ -123,13 +123,13 @@ let scanning=false, timer=null, expanded=null, orders=0, logLines=[], markets=[]
 let signals={fed:null,cpi:null,unemp:null,gas:null,sp:null};
 
 const CAT_KW={
-  'Fed':['fomc','federal reserve','interest rate','rate cut','rate hike','rate hold','fed funds','basis point','federal open','monetary policy','jerome powell'],
-  'Inflation':['cpi','inflation','pce','price index','consumer price','core inflation','deflation'],
-  'Jobs':['unemployment','nonfarm','payroll','jobless','labor force','job growth','jobs report'],
-  'Energy':['gas price','oil price','crude','wti','gasoline','barrel','energy price','gallon'],
-  'Markets':['s&p','nasdaq','dow','stock market','spx','equity market','market close','market index']
+  'Fed':['fed rate','rate hike','rate cut','rate hold','fomc','federal reserve','interest rate','monetary policy','jerome powell','fed funds','basis point'],
+  'Inflation':['cpi','inflation','pce','price index','consumer price','core inflation'],
+  'Jobs':['unemployment','nonfarm','payroll','jobless','labor force','jobs report','job growth'],
+  'Energy':['gas price','oil price','crude','wti','gasoline','barrel','gallon','gas prices'],
+  'Markets':['s&p','nasdaq','dow','stock market','spx','equity','market close','market index','how high will']
 };
-
+  
 function ts(){return new Date().toLocaleTimeString('en-US',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});}
 function log(msg,cls=''){logLines.push({msg,cls,t:ts()});if(logLines.length>300)logLines.shift();renderLog();}
 function renderLog(){const el=document.getElementById('klog');el.innerHTML=logLines.slice().reverse().map(l=>`<p class="${l.cls}">[${l.t}] ${l.msg}</p>`).join('');}
