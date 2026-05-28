@@ -6,6 +6,7 @@ const PORT = process.env.PORT || 3000;
 const KALSHI_KEY_ID = process.env.KALSHI_KEY_ID || '';
 const RAW_SECRET = process.env.KALSHI_SECRET || '';
 const KALSHI_SECRET = RAW_SECRET.replace(/\\n/g, '\n');
+const FRED_API_KEY = process.env.FRED_API_KEY || 'DEMO_KEY';
 
 function signRequest(timestamp, method, fullPath) {
   const pathOnly = fullPath.split('?')[0];
@@ -21,34 +22,37 @@ function signRequest(timestamp, method, fullPath) {
 }
 
 function proxyRequest(targetUrl, method, body, res) {
-  const url = new URL(targetUrl);
-  const timestamp = Date.now().toString();
-  let signature;
+  // Inject real FRED key if URL contains DEMO_KEY
+  targetUrl = targetUrl.replace('api_key=DEMO_KEY', `api_key=${FRED_API_KEY}`);
 
-  try {
-    signature = signRequest(timestamp, method, url.pathname + url.search);
-  } catch (e) {
-    res.writeHead(500, {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*'
-    });
-    res.end(JSON.stringify({ error: 'Signing failed: ' + e.message }));
-    return;
+  const url = new URL(targetUrl);
+  const isKalshi = url.hostname.includes('kalshi');
+  const timestamp = Date.now().toString();
+
+  const headers = { 'Content-Type': 'application/json' };
+
+  if (isKalshi) {
+    let signature;
+    try {
+      signature = signRequest(timestamp, method, url.pathname + url.search);
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+      res.end(JSON.stringify({ error: 'Signing failed: ' + e.message }));
+      return;
+    }
+    headers['KALSHI-ACCESS-KEY'] = KALSHI_KEY_ID;
+    headers['KALSHI-ACCESS-SIGNATURE'] = signature;
+    headers['KALSHI-ACCESS-TIMESTAMP'] = timestamp;
   }
+
+  if (body) headers['Content-Length'] = Buffer.byteLength(body);
 
   const options = {
     hostname: url.hostname,
     path: url.pathname + url.search,
     method: method,
-    headers: {
-      'Content-Type': 'application/json',
-      'KALSHI-ACCESS-KEY': KALSHI_KEY_ID,
-      'KALSHI-ACCESS-SIGNATURE': signature,
-      'KALSHI-ACCESS-TIMESTAMP': timestamp
-    }
+    headers
   };
-
-  if (body) options.headers['Content-Length'] = Buffer.byteLength(body);
 
   const req = https.request(options, (proxyRes) => {
     res.writeHead(proxyRes.statusCode, {
@@ -84,10 +88,7 @@ http.createServer((req, res) => {
   const target = url.searchParams.get('url');
 
   if (!target) {
-    res.writeHead(200, {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*'
-    });
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
     res.end(JSON.stringify({ status: 'Kalshi proxy running' }));
     return;
   }
