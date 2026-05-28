@@ -123,11 +123,11 @@ let scanning=false, timer=null, expanded=null, orders=0, logLines=[], markets=[]
 let signals={fed:null,cpi:null,unemp:null,gas:null,sp:null};
 
 const CAT_KW={
-  'Fed':['fed rate','rate hike','rate cut','rate hold','fomc','federal reserve','interest rate','monetary policy','jerome powell','fed funds','basis point'],
-  'Inflation':['cpi','inflation','pce','price index','consumer price','core inflation'],
+  'Fed':['fed decision','fed funds rate','fed rate','rate hike','rate cut','fomc','federal reserve','june meeting','july meeting','rate after','next fed'],
+  'Inflation':['cpi','inflation','pce','price index','consumer price','core inflation','cpi in'],
   'Jobs':['unemployment','nonfarm','payroll','jobless','labor force','jobs report','job growth'],
-  'Energy':['gas price','oil price','crude','wti','gasoline','barrel','gallon','gas prices'],
-  'Markets':['s&p','nasdaq','dow','stock market','spx','equity','market close','market index','how high will']
+  'Energy':['gas prices','gas price','oil price','crude','wti','gasoline','gallon','us gas'],
+  'Markets':['s&p','nasdaq','dow','stock market','spx','equity','market close','how high will','close price','end of 2026','s&p close','s&p get']
 };
   
 function ts(){return new Date().toLocaleTimeString('en-US',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});}
